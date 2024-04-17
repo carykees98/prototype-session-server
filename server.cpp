@@ -13,7 +13,10 @@
 
 #include "net_util.hpp"
 
+#include <fstream>
+#include <iostream>
 #include <filesystem>
+#include <regex>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -267,13 +270,36 @@ void get_session_file_path(int session_id, char path[])
     sprintf(path, "%s/session%d.dat", DATA_DIR, session_id);
 }
 
+std::string removeNonNumericalChars(std::string toModify)
+{
+    return std::regex_replace(
+        toModify,
+        std::regex("[^0-9]*([0-9]+).*"),
+        std::string("$1"));
+}
+
 /**
  * Loads every session from the disk one by one if it exists.
  * Use get_session_file_path() to get the file path for each session.
  */
 void load_all_sessions()
 {
-    // TODO
+    auto sessionsDir = std::filesystem::canonical(DATA_DIR);
+
+    for (auto file : std::filesystem::directory_iterator(sessionsDir))
+    {
+        int sessionNumber = std::stoi(removeNonNumericalChars(file.path().filename()));
+        std::ifstream sessionFile(file.path());
+        char variableName;
+        double value;
+
+        while (sessionFile >> variableName >> value)
+        {
+            session_list[sessionNumber].variables[(int)(variableName - 'A')] = true;
+            session_list[sessionNumber].values[(int)(variableName - 'A')] = value;
+        }
+        sessionFile.close();
+    }
 }
 
 /**
@@ -284,7 +310,23 @@ void load_all_sessions()
  */
 void save_session(int session_id)
 {
-    // TODO
+    char path[25];
+    get_session_file_path(session_id, path);
+
+    std::ofstream sessionFile(path);
+
+    for (size_t i = 0; i < NUM_SESSIONS; i++)
+    {
+        for (size_t j = 0; j < NUM_VARIABLES; j++)
+        {
+            if (session_list[i].variables[j])
+            {
+                sessionFile << (char)('A' + j) << " " << session_list[i].values[j] << '\n';
+            }
+        }
+    }
+
+    sessionFile.close();
 }
 
 /**
@@ -397,7 +439,7 @@ void browser_handler(int browser_socket_fd)
 void start_server(int port)
 {
     // Creates sessions folder if one does not exist.
-    auto sessionsDir = std::filesystem::canonical("./sessions");
+    auto sessionsDir = std::filesystem::canonical(DATA_DIR);
     if (!std::filesystem::exists(sessionsDir))
     {
         std::filesystem::create_directory(sessionsDir);

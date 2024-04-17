@@ -13,6 +13,8 @@
 
 #include "net_util.hpp"
 
+#include <fstream>
+#include <filesystem>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -84,7 +86,14 @@ void read_user_input(char message[])
 void load_cookie()
 {
     // TODO
-    session_id = -1;
+    if (std::filesystem::is_regular_file(COOKIE_PATH))
+    {
+        std::ifstream(COOKIE_PATH) >> session_id;
+    }
+    else
+    {
+        session_id = -1;
+    }
 }
 
 /**
@@ -93,7 +102,9 @@ void load_cookie()
  */
 void save_cookie()
 {
-    // TODO
+    std::ofstream cookieFile(COOKIE_PATH);
+
+    cookieFile << session_id;
 }
 
 /**
