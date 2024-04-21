@@ -17,6 +17,7 @@
 #include <iostream>
 #include <filesystem>
 #include <regex>
+#include <thread>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -310,7 +311,7 @@ void load_all_sessions()
  */
 void save_session(int session_id)
 {
-    char path[25];
+    char path[26]; // "./sessions/sessionXXX.dat"
     get_session_file_path(session_id, path);
 
     std::ofstream sessionFile(path);
@@ -340,6 +341,7 @@ int register_browser(int browser_socket_fd)
 {
     int browser_id;
 
+    pthread_mutex_lock(&browser_list_mutex);
     for (int i = 0; i < NUM_BROWSER; ++i)
     {
         if (!browser_list[i].in_use)
@@ -350,6 +352,7 @@ int register_browser(int browser_socket_fd)
             break;
         }
     }
+    pthread_mutex_unlock(&browser_list_mutex);
 
     char message[BUFFER_LEN];
     receive_message(browser_socket_fd, message);
@@ -357,6 +360,7 @@ int register_browser(int browser_socket_fd)
     int session_id = strtol(message, NULL, 10);
     if (session_id == -1)
     {
+        pthread_mutex_lock(&session_list_mutex);
         for (int i = 0; i < NUM_SESSIONS; ++i)
         {
             if (!session_list[i].in_use)
@@ -366,6 +370,7 @@ int register_browser(int browser_socket_fd)
                 break;
             }
         }
+        pthread_mutex_unlock(&session_list_mutex);
     }
     browser_list[browser_id].session_id = session_id;
 
@@ -488,7 +493,7 @@ void start_server(int port)
         }
 
         // Starts the handler for the new browser.
-        browser_handler(browser_socket_fd);
+        std::thread(browser_handler, browser_socket_fd).detach();
     }
 
     // Closes the socket.

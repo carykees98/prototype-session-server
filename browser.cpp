@@ -15,6 +15,7 @@
 
 #include <fstream>
 #include <filesystem>
+#include <thread>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -126,9 +127,12 @@ void register_server()
  */
 void server_listener()
 {
-    char message[BUFFER_LEN];
-    receive_message(server_socket_fd, message);
-    puts(message);
+    while (true)
+    {
+        char message[BUFFER_LEN];
+        receive_message(server_socket_fd, message);
+        puts(message);
+    }
 }
 
 /**
@@ -175,9 +179,9 @@ void start_browser(const char host_ip[], int port)
     while (browser_on)
     {
         char message[BUFFER_LEN];
+        std::thread(server_listener).detach();
         read_user_input(message);
         send_message(server_socket_fd, message);
-        server_listener();
     }
 
     // Closes the socket.
