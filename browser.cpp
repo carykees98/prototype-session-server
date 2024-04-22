@@ -89,7 +89,7 @@ void load_cookie()
     session_id = -1;
 
     if (std::filesystem::is_regular_file(COOKIE_PATH))
-        std::ifstream(COOKIE_PATH) >> session_id;
+        std::ifstream(COOKIE_PATH) >> session_id; // File closed by RAII
 }
 
 /**
@@ -98,7 +98,7 @@ void load_cookie()
  */
 void save_cookie()
 {
-    std::ofstream(COOKIE_PATH) << session_id;
+    std::ofstream(COOKIE_PATH) << session_id; // File closed by RAII
 }
 
 /**
