@@ -103,9 +103,7 @@ void load_cookie()
  */
 void save_cookie()
 {
-    std::ofstream cookieFile(COOKIE_PATH);
-
-    cookieFile << session_id;
+    std::ofstream(COOKIE_PATH) << session_id;
 }
 
 /**
