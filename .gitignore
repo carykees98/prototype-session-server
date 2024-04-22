@@ -2,3 +2,4 @@ browser
 server
 sessions/
 browser.cookie
+.vscode/
