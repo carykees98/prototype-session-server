@@ -28,6 +28,8 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <netinet/in.h>
+#include <climits>
+#include <regex>
 
 #define NUM_VARIABLES 26
 #define NUM_SESSIONS 128
@@ -50,7 +52,7 @@ typedef struct session_struct
 } session_t;
 
 static browser_t browser_list[NUM_BROWSER];                            // Stores the information of all browsers.
-static session_t session_list[NUM_SESSIONS];                           // Stores the information of all sessions.
+static std::unordered_map<int, session_t> session_list;                // Stores the information of all sessions.
 static pthread_mutex_t browser_list_mutex = PTHREAD_MUTEX_INITIALIZER; // A mutex lock for the browser list.
 static pthread_mutex_t session_list_mutex = PTHREAD_MUTEX_INITIALIZER; // A mutex lock for the session list.
 
@@ -172,6 +174,7 @@ bool process_message(int session_id, const char message[])
     double first_value;
     char symbol;
     double second_value;
+    std::regex pattern ("[a-z]"); // First variable can only be a lowercase letter
 
     // Makes a copy of the string since strtok() will modify the string that it is processing.
     char data[BUFFER_LEN];
@@ -179,7 +182,7 @@ bool process_message(int session_id, const char message[])
 
     // Processes the result variable.
     token = strtok(data, " ");
-    if (token == NULL) {
+    if (token == NULL || !regex_match(token, pattern)) {
         // No result variable found, return false.
         return false;
     }
@@ -191,7 +194,6 @@ bool process_message(int session_id, const char message[])
         // Expected '=' after result variable, return false.
         return false;
     }
-
     // Processes the first variable/value.
     token = strtok(NULL, " ");
     if (token == NULL) {
@@ -204,6 +206,9 @@ bool process_message(int session_id, const char message[])
     }
     else
     {
+        if (!session_list[session_id].variables[token[0] - 'a']){
+            return false;
+        }
         int first_idx = token[0] - 'a';
         first_value = session_list[session_id].values[first_idx];
     }
@@ -230,6 +235,9 @@ bool process_message(int session_id, const char message[])
     }
     else
     {
+        if (!session_list[session_id].variables[token[0] - 'a']){
+            return false;
+        }
         int second_idx = token[0] - 'a';
         second_value = session_list[session_id].values[second_idx];
     }
@@ -383,9 +391,9 @@ int register_browser(int browser_socket_fd)
         pthread_mutex_lock(&session_list_mutex);
         for (int i = 0; i < NUM_SESSIONS; ++i)
         {
-            if (!session_list[i].in_use)
+            while (!session_list[i].in_use)
             {
-                session_id = i;
+                session_id = rand() % INT_MAX;
                 session_list[session_id].in_use = true;
                 break;
             }
