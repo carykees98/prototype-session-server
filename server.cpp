@@ -179,13 +179,25 @@ bool process_message(int session_id, const char message[])
 
     // Processes the result variable.
     token = strtok(data, " ");
+    if (token == NULL) {
+        // No result variable found, return false.
+        return false;
+    }
     result_idx = token[0] - 'a';
 
     // Processes "=".
     token = strtok(NULL, " ");
+    if (token == NULL || strcmp(token, "=") != 0) {
+        // Expected '=' after result variable, return false.
+        return false;
+    }
 
     // Processes the first variable/value.
     token = strtok(NULL, " ");
+    if (token == NULL) {
+        // No first variable/value found, return false.
+        return false;
+    }
     if (is_str_numeric(token))
     {
         first_value = strtod(token, NULL);
@@ -208,6 +220,10 @@ bool process_message(int session_id, const char message[])
 
     // Processes the second variable/value.
     token = strtok(NULL, " ");
+    if (token == NULL) {
+        // No second variable/value found, return false.
+        return false;
+    }
     if (is_str_numeric(token))
     {
         second_value = strtod(token, NULL);
@@ -220,6 +236,10 @@ bool process_message(int session_id, const char message[])
 
     // No data should be left over thereafter.
     token = strtok(NULL, " ");
+    if (token != NULL) {
+        // Unexpected extra tokens found, return false.
+        return false;
+    }
 
     session_list[session_id].variables[result_idx] = true;
 
@@ -425,6 +445,7 @@ void browser_handler(int browser_socket_fd)
         if (!data_valid)
         {
             // Send the error message to the browser.
+            broadcast(session_id, "Invalid input!");
             continue;
         }
 
