@@ -29,7 +29,7 @@
 #include <sys/stat.h>
 #include <netinet/in.h>
 #include <climits>
-#include <regex>
+#include <unordered_map>
 
 #define NUM_VARIABLES 26
 #define NUM_SESSIONS 128
